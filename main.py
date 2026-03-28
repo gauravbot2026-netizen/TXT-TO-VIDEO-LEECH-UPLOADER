@@ -283,7 +283,7 @@ async def upload(bot: Client, m: Message):
                 name = f'{str(count).zfill(3)}) {name1}'
 
                 # Determine download strategy
-                if "youtu" in url:
+if "youtu" in url:
     ytf = f"b[height<={raw_text2}][ext=mp4]/bv[height<={raw_text2}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
     cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.%(ext)s"'
 
