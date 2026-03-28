@@ -284,16 +284,17 @@ async def upload(bot: Client, m: Message):
 
                 # Determine download strategy
                 if "youtu" in url:
-                    ytf = f"b[height<={raw_text2}][ext=mp4]/bv[height<={raw_text2}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
-                    cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.%(ext)s"'
-                elif url.endswith('.pdf'):
-                    cmd = f'yt-dlp -o "{name}.pdf" "{url}"'
+    ytf = f"b[height<={raw_text2}][ext=mp4]/bv[height<={raw_text2}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
+    cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.%(ext)s"'
 
-                elif ".m3u8" in url:
-                     cmd = f'yt-dlp -f "best" "{url}" -o "{name}.mp4"'
+elif url.endswith('.pdf'):
+    cmd = f'yt-dlp -o "{name}.pdf" "{url}"'
 
-                    else:
-                    cmd = f'yt-dlp -f "best" "{url}" -o "{name}.%(ext)s"'
+elif ".m3u8" in url:
+    cmd = f'yt-dlp -f "best" "{url}" -o "{name}.mp4"'
+
+else:
+    cmd = f'yt-dlp -f "best" "{url}" -o "{name}.%(ext)s"'
 
                 cc = f'**📹 Video #{str(count).zfill(3)}**\n**📁 Title:** {name1}\n**📦 Batch:** {raw_text0}\n{MR}'
                 cc1 = f'**📄 Document #{str(count).zfill(3)}**\n**📁 Title:** {name1}\n**📦 Batch:** {raw_text0}\n{MR}'
