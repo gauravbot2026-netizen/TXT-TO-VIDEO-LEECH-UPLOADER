@@ -288,7 +288,11 @@ async def upload(bot: Client, m: Message):
                     cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.%(ext)s"'
                 elif url.endswith('.pdf'):
                     cmd = f'yt-dlp -o "{name}.pdf" "{url}"'
-                else:
+
+                elif ".m3u8" in url:
+                     cmd = f'yt-dlp -f "best" "{url}" -o "{name}.mp4"'
+
+                    else:
                     cmd = f'yt-dlp -f "best" "{url}" -o "{name}.%(ext)s"'
 
                 cc = f'**📹 Video #{str(count).zfill(3)}**\n**📁 Title:** {name1}\n**📦 Batch:** {raw_text0}\n{MR}'
