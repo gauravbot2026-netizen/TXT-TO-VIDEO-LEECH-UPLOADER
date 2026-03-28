@@ -8,135 +8,117 @@ import asyncio
 import subprocess
 
 import core as helper
-from vars import API_ID, API_HASH, BOT_TOKEN, FORCE_SUB_CHANNEL
-
-from aiohttp import ClientSession
-from pyromod import listen
-from subprocess import getstatusoutput
+from vars import API_ID, API_HASH, BOT_TOKEN
 
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from pyrogram.enums import ParseMode, ChatMemberStatus
-from pyrogram.errors import FloodWait, UserNotParticipant
+from pyrogram.types import Message
+from pyrogram.errors import FloodWait
 
-bot = Client("bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+bot = Client(
+    "bot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
 
-# ================== FORCE SUB ==================
-
-async def is_subscribed(bot, user_id):
-    if not FORCE_SUB_CHANNEL:
-        return True
-    try:
-        member = await bot.get_chat_member(FORCE_SUB_CHANNEL, user_id)
-        return member.status in [
-            ChatMemberStatus.OWNER,
-            ChatMemberStatus.ADMINISTRATOR,
-            ChatMemberStatus.MEMBER
-        ]
-    except UserNotParticipant:
-        return False
-    except:
-        return False
-
-
-def force_subscribe(func):
-    async def wrapper(bot, message):
-        if FORCE_SUB_CHANNEL:
-            if not await is_subscribed(bot, message.from_user.id):
-                await message.reply_text("Join channel first!")
-                return
-        await func(bot, message)
-    return wrapper
-
-# ================== START ==================
-
+# ------------------ START ------------------ #
 @bot.on_message(filters.command("start"))
-@force_subscribe
-async def start(bot, m):
-    await m.reply_text("Send /upload to start 🚀")
+async def start(_, m: Message):
+    await m.reply_text("👋 Send /upload and upload TXT file")
 
-# ================== UPLOAD ==================
-
+# ------------------ UPLOAD ------------------ #
 @bot.on_message(filters.command("upload"))
-@force_subscribe
 async def upload(bot: Client, m: Message):
 
-    editable = await m.reply_text("Send TXT file")
+    msg = await m.reply_text("📤 Send TXT file")
+    file: Message = await bot.listen(m.chat.id)
 
-    input: Message = await bot.listen(m.chat.id)
-    file_path = await input.download()
-    await input.delete()
+    path = await file.download()
+    await file.delete()
 
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
         lines = f.readlines()
 
     links = []
     for line in lines:
-        match = re.search(r'https?://[^\s]+', line)
-        if match:
-            links.append(match.group())
+        url = re.search(r'https?://\S+', line)
+        if url:
+            links.append(url.group())
 
-    os.remove(file_path)
+    os.remove(path)
 
     if not links:
-        await editable.edit("No links found ❌")
-        return
+        return await msg.edit("❌ No links found")
 
-    await editable.edit(f"Total links: {len(links)}")
+    await msg.edit(f"✅ Found {len(links)} links\nSend start number (1 default)")
+    start_msg = await bot.listen(m.chat.id)
 
-    # QUALITY
-    await m.reply_text("Enter quality (144/240/360/480/720/1080)")
-    q = (await bot.listen(m.chat.id)).text
+    try:
+        count = int(start_msg.text)
+    except:
+        count = 1
 
-    count = 1
+    await start_msg.delete()
 
-    for url in links:
+    success = 0
+    failed = 0
+
+    for i in range(count - 1, len(links)):
+
+        url = links[i]
+        name = f"{str(i+1).zfill(3)}"
+
+        prog = await m.reply_text(f"⬇️ Downloading {i+1}/{len(links)}")
+
         try:
-            name = f"{count:03d}"
-
-            # ========= FIXED BLOCK =========
+            # ----------- CMD FIX ----------- #
             if "youtu" in url:
-                ytf = f"b[height<={q}]"
-                cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.%(ext)s"'
+                cmd = f'yt-dlp -f "best" "{url}" -o "{name}.%(ext)s"'
 
             elif url.endswith(".pdf"):
-                cmd = f'yt-dlp -o "{name}.pdf" "{url}"'
+                cmd = f'yt-dlp "{url}" -o "{name}.pdf"'
 
             elif ".m3u8" in url:
-                cmd = f'yt-dlp "{url}" -o "{name}.mp4"'
+                cmd = f'yt-dlp -f "best" "{url}" -o "{name}.mp4"'
 
             else:
                 cmd = f'yt-dlp "{url}" -o "{name}.%(ext)s"'
-            # ===============================
 
-            msg = await m.reply_text(f"Downloading {name}...")
+            # RUN
+            os.system(cmd)
 
-            subprocess.run(cmd, shell=True)
-
-            file = None
+            # ----------- FILE DETECT ----------- #
+            file_path = None
             for ext in [".mp4", ".mkv", ".webm", ".pdf"]:
                 if os.path.exists(name + ext):
-                    file = name + ext
+                    file_path = name + ext
                     break
 
-            if file:
-                await m.reply_document(file)
-                os.remove(file)
+            if file_path:
+                if file_path.endswith(".pdf"):
+                    await bot.send_document(m.chat.id, file_path)
+                else:
+                    await bot.send_video(m.chat.id, file_path)
 
-            await msg.delete()
-            count += 1
-            time.sleep(1)
+                os.remove(file_path)
+                success += 1
+            else:
+                failed += 1
+                await prog.edit("❌ Download failed")
 
         except FloodWait as e:
             await asyncio.sleep(e.value)
 
         except Exception as e:
-            await m.reply_text(f"Error: {e}")
+            failed += 1
+            await prog.edit(f"❌ Error: {str(e)}")
 
-    await m.reply_text("Done ✅")
+        await prog.delete()
+        await asyncio.sleep(1)
 
-# ================== RUN ==================
+    await m.reply_text(
+        f"🎉 Done\n\n✅ Success: {success}\n❌ Failed: {failed}"
+    )
 
-if __name__ == "__main__":
-    print("Bot Started...")
-    bot.run()
+# ------------------ RUN ------------------ #
+bot.run()
