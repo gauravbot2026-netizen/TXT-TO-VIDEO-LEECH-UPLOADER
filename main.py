@@ -59,7 +59,7 @@ def force_subscribe(func):
             is_sub = await is_subscribed(bot, message.from_user.id)
             if not is_sub:
                 keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔔 Join Channel", url="https://t.me/roxybasicneedbot1")],
+                    [InlineKeyboardButton("🔔 Join Channel", url="https://t.me/class_video_pdf")],
                     [InlineKeyboardButton("🔄 Refresh", callback_data="refresh_sub")]
                 ])
                 await message.reply_text(
@@ -121,8 +121,8 @@ async def start(bot: Client, m: Message):
             InlineKeyboardButton("⚡ Upload Files", callback_data="upload_files")
         ],
         [
-            InlineKeyboardButton("🔔 Channel", url="https://t.me/roxybasicneedbot1"),
-            InlineKeyboardButton("👨‍💻 Developer", url="https://t.me/roxycontactbot")
+            InlineKeyboardButton("🔔 Channel", url="https://t.me/class_video_pdf"),
+            InlineKeyboardButton("👨‍💻 Developer", url="@Mr_course")
         ]
     ])
     
